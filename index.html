@@ -397,6 +397,16 @@ function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.cl
 window.goHome = function() { buildHome(); showScreen('home-screen'); };
 window.retryModule = retryModule;
 
+window.resetAll = function() {
+  if (!confirm('Reset all progress and answers? This cannot be undone.')) return;
+  for (let m = 1; m <= numModules; m++) {
+    localStorage.removeItem(`quizAnswers_${m}`);
+  }
+  localStorage.removeItem('quizProgress');
+  progress = {};
+  buildHome();
+};
+
 buildHome();
 </script>
 </body>
