@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Study Quiz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --surface2:  #1f2436;
+      --border:    #2a3050;
+      --accent:    #4f8ef7;
+      --accent-dim:#1e3563;
+      --green:     #3dd68c;
+      --green-dim: #143d28;
+      --red:       #f76f6f;
+      --red-dim:   #3d1414;
+      --yellow:    #f5c842;
+      --yellow-dim:#3a2f08;
+      --text:      #e4e8f5;
+      --muted:     #7b84a3;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'Inter', sans-serif;
+      --radius:    10px;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .logo { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; color: var(--accent); letter-spacing: -0.02em; }
+    .logo span { color: var(--muted); }
+
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* HOME */
+    #home-screen { align-items: center; justify-content: center; padding: 40px 24px; gap: 40px; }
+    .home-hero { text-align: center; max-width: 520px; }
+    .home-hero h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 600; line-height: 1.2; margin-bottom: 12px; }
+    .home-hero h1 em { font-style: normal; color: var(--accent); }
+    .home-hero p { color: var(--muted); font-size: 1rem; line-height: 1.6; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; width: 100%; max-width: 740px; }
+    .module-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s; display: flex; flex-direction: column; gap: 6px; }
+    .module-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); }
+    .module-card .mod-num { font-family: var(--mono); font-size: 0.7rem; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+    .module-card .mod-title { font-size: 0.95rem; font-weight: 600; }
+    .module-card .mod-count { font-size: 0.8rem; color: var(--muted); }
+    .module-card .mod-progress { height: 3px; background: var(--border); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+    .module-card .mod-progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+
+    /* QUIZ */
+    #quiz-screen { padding: 0; }
+    .quiz-topbar { padding: 14px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .back-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 0.85rem; transition: border-color 0.15s, color 0.15s; }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .quiz-meta { flex: 1; }
+    .quiz-meta .mod-label { font-family: var(--mono); font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+    .quiz-meta .q-counter { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }
+    .shuffle-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: var(--sans); font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+    .shuffle-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .shuffle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .quiz-progress-bar { height: 3px; background: var(--border); }
+    .quiz-progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+    .quiz-body { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 40px 24px 60px; }
+    .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 40px; max-width: 680px; width: 100%; }
+    .q-number { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+    .q-multi-badge { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); border-radius: 4px; padding: 1px 7px; font-size: 0.65rem; letter-spacing: 0.05em; }
+    .q-text { font-size: 1.05rem; line-height: 1.65; margin-bottom: 24px; color: var(--text); }
+    .options-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .option-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; text-align: left; color: var(--text); font-size: 0.95rem; font-family: var(--sans); line-height: 1.5; display: flex; align-items: flex-start; gap: 12px; transition: border-color 0.12s, background 0.12s; }
+    .option-btn .opt-letter { font-family: var(--mono); font-size: 0.75rem; font-weight: 600; color: var(--muted); min-width: 20px; margin-top: 2px; }
+    .option-btn:hover:not(:disabled):not(.selected-multi) { border-color: var(--accent); background: var(--accent-dim); }
+    .option-btn.selected-multi { border-color: var(--accent); background: var(--accent-dim); }
+    .option-btn.selected-multi .opt-letter { color: var(--accent); }
+    .option-btn.correct { border-color: var(--green); background: var(--green-dim); }
+    .option-btn.correct .opt-letter { color: var(--green); }
+    .option-btn.wrong { border-color: var(--red); background: var(--red-dim); }
+    .option-btn.wrong .opt-letter { color: var(--red); }
+    .option-btn.missed { border-color: var(--yellow); background: var(--yellow-dim); }
+    .option-btn.missed .opt-letter { color: var(--yellow); }
+    .option-btn:disabled { cursor: default; }
+
+    .submit-multi-btn { margin-top: 14px; background: var(--accent); border: none; color: #fff; padding: 11px 24px; border-radius: 8px; cursor: pointer; font-family: var(--sans); font-size: 0.9rem; font-weight: 600; transition: background 0.12s; display: none; }
+    .submit-multi-btn:hover { background: #6aa3ff; }
+    .submit-multi-btn.visible { display: block; }
+
+    .answer-feedback { margin-top: 18px; padding: 13px 18px; border-radius: var(--radius); font-size: 0.9rem; line-height: 1.5; display: none; }
+    .answer-feedback.show { display: block; }
+    .answer-feedback.correct-fb { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+    .answer-feedback.wrong-fb { background: var(--red-dim); border: 1px solid var(--red); color: var(--red); }
+
+    .quiz-nav { margin-top: 24px; display: flex; justify-content: space-between; gap: 12px; }
+    .nav-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 22px; border-radius: 8px; cursor: pointer; font-family: var(--sans); font-size: 0.9rem; font-weight: 500; transition: border-color 0.12s, background 0.12s; }
+    .nav-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .nav-btn:disabled { opacity: 0.35; cursor: default; }
+    .nav-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .nav-btn.primary:hover { background: #6aa3ff; border-color: #6aa3ff; color: #fff; }
+
+    /* RESULTS */
+    #results-screen { align-items: center; justify-content: center; padding: 40px 24px; text-align: center; gap: 24px; }
+    .results-score { font-family: var(--mono); font-size: clamp(3rem, 10vw, 5rem); font-weight: 600; color: var(--accent); line-height: 1; }
+    .results-score span { font-size: 0.35em; color: var(--muted); display: block; margin-top: 6px; }
+    .results-summary { color: var(--muted); font-size: 0.95rem; line-height: 1.6; max-width: 380px; }
+    .results-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+    @media (max-width: 600px) {
+      header { padding: 16px 20px; }
+      .question-card { padding: 24px 20px; }
+      .quiz-topbar { padding: 12px 20px; }
+      .quiz-body { padding: 24px 16px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">study<span>.</span>quiz</div>
+  <div id="header-stats" style="font-size:0.8rem;color:var(--muted);font-family:var(--mono)"></div>
+</header>
+
+<div id="home-screen" class="screen active">
+  <div class="home-hero">
+    <h1>Study <em>smarter.</em><br/>One module at a time.</h1>
+    <p id="home-subtitle"></p>
+  </div>
+  <div class="module-grid" id="module-grid"></div>
+</div>
+
+<div id="quiz-screen" class="screen">
+  <div class="quiz-topbar">
+    <button class="back-btn" onclick="goHome()">← Modules</button>
+    <div class="quiz-meta">
+      <div class="mod-label" id="quiz-mod-label"></div>
+      <div class="q-counter" id="quiz-q-counter"></div>
+    </div>
+    <button class="shuffle-btn" id="shuffle-btn" onclick="toggleShuffle()">⇄ Shuffle</button>
+  </div>
+  <div class="quiz-progress-bar">
+    <div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div>
+  </div>
+  <div class="quiz-body">
+    <div class="question-card">
+      <div class="q-number" id="q-number"></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options-list" id="options-list"></div>
+      <button class="submit-multi-btn" id="submit-multi-btn" onclick="submitMultiAnswer()">Submit Answer</button>
+      <div class="answer-feedback" id="answer-feedback"></div>
+      <div class="quiz-nav">
+        <button class="nav-btn" id="prev-btn" onclick="prevQuestion()">← Prev</button>
+        <button class="nav-btn primary" id="next-btn" onclick="nextQuestion()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="results-screen" class="screen">
+  <div class="results-score" id="results-score">0/50<span>questions correct</span></div>
+  <div class="results-summary" id="results-summary"></div>
+  <div class="results-actions">
+    <button class="nav-btn primary" onclick="retryModule()">Retry Module</button>
+    <button class="nav-btn" onclick="goHome()">← All Modules</button>
+  </div>
+</div>
+
+<script type="module">
+import questions from './questions.js';
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let currentModule = null;
+let moduleQuestions = [];
+let currentIndex = 0;
+let shuffleEnabled = false;
+let answers = {};   // { questionId: selectedIndex | [indices] }
+let pendingMulti = new Set(); // for multi-answer in progress
+let progress = {};
+
+function loadProgress() {
+  try { const s = localStorage.getItem('quizProgress'); if (s) progress = JSON.parse(s); } catch {}
+}
+function saveProgress() {
+  try { localStorage.setItem('quizProgress', JSON.stringify(progress)); } catch {}
+}
+function loadAnswers(mod) {
+  try { const s = localStorage.getItem(`quizAnswers_${mod}`); answers = s ? JSON.parse(s) : {}; }
+  catch { answers = {}; }
+}
+function saveAnswers(mod) {
+  try { localStorage.setItem(`quizAnswers_${mod}`, JSON.stringify(answers)); } catch {}
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const numModules = Math.max(...questions.map(q => q.module));
+
+// ── HOME ──────────────────────────────────────────────────────────────────
+function buildHome() {
+  loadProgress();
+  document.getElementById('home-subtitle').textContent =
+    `${numModules} modules · ${questions.length} questions total · shuffle anytime`;
+  const grid = document.getElementById('module-grid');
+  grid.innerHTML = '';
+  for (let m = 1; m <= numModules; m++) {
+    const mqs = questions.filter(q => q.module === m);
+    const prog = progress[m] || { answered: 0, correct: 0 };
+    const pct = mqs.length > 0 ? Math.round((prog.answered / mqs.length) * 100) : 0;
+    const ids = mqs.map(q => q.id);
+    const card = document.createElement('div');
+    card.className = 'module-card';
+    card.innerHTML = `
+      <div class="mod-num">Module ${m}</div>
+      <div class="mod-title">Q${Math.min(...ids)}–Q${Math.max(...ids)}</div>
+      <div class="mod-count">${mqs.length} questions${prog.correct > 0 ? ` · ${prog.correct}✓` : ''}</div>
+      <div class="mod-progress"><div class="mod-progress-fill" style="width:${pct}%"></div></div>
+    `;
+    card.onclick = () => startModule(m);
+    grid.appendChild(card);
+  }
+  const totalAnswered = Object.values(progress).reduce((s, v) => s + (v.answered || 0), 0);
+  document.getElementById('header-stats').textContent =
+    totalAnswered > 0 ? `${totalAnswered}/${questions.length} studied` : '';
+}
+
+// ── START MODULE ──────────────────────────────────────────────────────────
+function startModule(mod) {
+  currentModule = mod;
+  moduleQuestions = questions.filter(q => q.module === mod);
+  if (shuffleEnabled) moduleQuestions = shuffle(moduleQuestions);
+  currentIndex = 0;
+  loadAnswers(mod);
+  pendingMulti = new Set();
+  showScreen('quiz-screen');
+  document.getElementById('quiz-mod-label').textContent = `Module ${mod}`;
+  document.getElementById('shuffle-btn').className = 'shuffle-btn' + (shuffleEnabled ? ' active' : '');
+  renderQuestion();
+}
+
+function retryModule() {
+  answers = {};
+  saveAnswers(currentModule);
+  if (progress[currentModule]) { progress[currentModule] = { answered: 0, correct: 0 }; saveProgress(); }
+  startModule(currentModule);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderQuestion() {
+  const q = moduleQuestions[currentIndex];
+  const total = moduleQuestions.length;
+  const isMulti = Array.isArray(q.correct);
+  const answered = answers[q.id];
+  const hasAnswered = answered !== undefined;
+
+  // Header
+  const qNumEl = document.getElementById('q-number');
+  qNumEl.innerHTML = `Question ${currentIndex + 1} of ${total}` +
+    (isMulti ? ` <span class="q-multi-badge">SELECT ${q.correct.length}</span>` : '');
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('quiz-q-counter').textContent = `${currentIndex + 1} / ${total}`;
+  document.getElementById('quiz-progress-fill').style.width = `${((currentIndex + 1) / total) * 100}%`;
+
+  // Options
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+  if (!hasAnswered) pendingMulti = new Set();
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+
+    if (hasAnswered) {
+      const correctSet = new Set(isMulti ? q.correct : [q.correct]);
+      const selectedSet = new Set(isMulti ? answered : [answered]);
+      if (correctSet.has(i) && selectedSet.has(i)) btn.classList.add('correct');
+      else if (!correctSet.has(i) && selectedSet.has(i)) btn.classList.add('wrong');
+      else if (correctSet.has(i) && !selectedSet.has(i)) btn.classList.add('missed');
+      btn.disabled = true;
+    } else {
+      if (isMulti && pendingMulti.has(i)) btn.classList.add('selected-multi');
+      btn.onclick = () => isMulti ? toggleMultiOption(i, btn) : selectAnswer(i);
+    }
+
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    list.appendChild(btn);
+  });
+
+  // Submit button for multi
+  const submitBtn = document.getElementById('submit-multi-btn');
+  submitBtn.className = 'submit-multi-btn' + (isMulti && !hasAnswered ? ' visible' : '');
+
+  // Feedback
+  const fb = document.getElementById('answer-feedback');
+  if (hasAnswered) {
+    const correctSet = new Set(isMulti ? q.correct : [q.correct]);
+    const selectedSet = new Set(isMulti ? answered : [answered]);
+    const isCorrect = correctSet.size === selectedSet.size &&
+      [...correctSet].every(v => selectedSet.has(v));
+    fb.className = 'answer-feedback show ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
+    if (isCorrect) {
+      fb.textContent = '✓ Correct!';
+    } else {
+      const correctLabels = (isMulti ? q.correct : [q.correct]).map(i => letters[i]).join(', ');
+      fb.textContent = `✗ Incorrect — correct answer${q.correct.length > 1 ? 's' : ''}: ${correctLabels}`;
+    }
+  } else {
+    fb.className = 'answer-feedback';
+  }
+
+  document.getElementById('prev-btn').disabled = currentIndex === 0;
+  document.getElementById('next-btn').textContent = currentIndex === total - 1 ? 'Finish →' : 'Next →';
+}
+
+function toggleMultiOption(idx, btn) {
+  if (pendingMulti.has(idx)) { pendingMulti.delete(idx); btn.classList.remove('selected-multi'); btn.querySelector('.opt-letter').style.color = ''; }
+  else { pendingMulti.add(idx); btn.classList.add('selected-multi'); }
+}
+
+window.submitMultiAnswer = function() {
+  if (pendingMulti.size === 0) return;
+  const q = moduleQuestions[currentIndex];
+  answers[q.id] = [...pendingMulti].sort((a, b) => a - b);
+  saveAnswers(currentModule);
+  updateModuleProgress();
+  renderQuestion();
+};
+
+function selectAnswer(idx) {
+  const q = moduleQuestions[currentIndex];
+  if (answers[q.id] !== undefined) return;
+  answers[q.id] = idx;
+  saveAnswers(currentModule);
+  updateModuleProgress();
+  renderQuestion();
+}
+
+function updateModuleProgress() {
+  if (!progress[currentModule]) progress[currentModule] = { answered: 0, correct: 0 };
+  progress[currentModule].answered = Object.keys(answers).length;
+  progress[currentModule].correct = Object.entries(answers).filter(([id, sel]) => {
+    const origQ = questions.find(qq => qq.id == id);
+    if (!origQ) return false;
+    const correctSet = new Set(Array.isArray(origQ.correct) ? origQ.correct : [origQ.correct]);
+    const selectedSet = new Set(Array.isArray(sel) ? sel : [sel]);
+    return correctSet.size === selectedSet.size && [...correctSet].every(v => selectedSet.has(v));
+  }).length;
+  saveProgress();
+}
+
+window.prevQuestion = function() { if (currentIndex > 0) { currentIndex--; pendingMulti = new Set(); renderQuestion(); } };
+window.nextQuestion = function() {
+  if (currentIndex < moduleQuestions.length - 1) { currentIndex++; pendingMulti = new Set(); renderQuestion(); }
+  else showResults();
+};
+
+// ── RESULTS ───────────────────────────────────────────────────────────────
+function showResults() {
+  const total = moduleQuestions.length;
+  const correct = Object.entries(answers).filter(([id, sel]) => {
+    const q = questions.find(qq => qq.id == id);
+    if (!q) return false;
+    const cs = new Set(Array.isArray(q.correct) ? q.correct : [q.correct]);
+    const ss = new Set(Array.isArray(sel) ? sel : [sel]);
+    return cs.size === ss.size && [...cs].every(v => ss.has(v));
+  }).length;
+  const pct = Math.round((correct / total) * 100);
+  document.getElementById('results-score').innerHTML = `${correct}/${total}<span>${pct}% correct</span>`;
+  const msg = pct === 100 ? 'Perfect score! Excellent work.' : pct >= 80 ? 'Great job! You know this material well.' : pct >= 60 ? 'Good effort — review the ones you missed.' : 'Keep studying — you\'ll get there!';
+  document.getElementById('results-summary').textContent = `Module ${currentModule} complete. ${msg}`;
+  showScreen('results-screen');
+}
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+window.toggleShuffle = function() {
+  shuffleEnabled = !shuffleEnabled;
+  document.getElementById('shuffle-btn').className = 'shuffle-btn' + (shuffleEnabled ? ' active' : '');
+  moduleQuestions = shuffleEnabled ? shuffle(questions.filter(q => q.module === currentModule)) : questions.filter(q => q.module === currentModule);
+  currentIndex = 0; pendingMulti = new Set(); renderQuestion();
+};
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+window.goHome = function() { buildHome(); showScreen('home-screen'); };
+window.retryModule = retryModule;
+
+buildHome();
+</script>
+</body>
+</html>
